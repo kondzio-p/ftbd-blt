@@ -52,6 +52,40 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout }) => {
 		localStorage.setItem("mediaLibrary", JSON.stringify(items));
 	};
 
+	const handleFileUpload = async (file: File, targetPath: string): Promise<string> => {
+		try {
+			// Use FormData for file upload
+			const formData = new FormData();
+			formData.append('file', file);
+			
+			// Determine media type and category from targetPath
+			const pathParts = targetPath.split('/').filter(part => part);
+			const mediaType = pathParts.includes('main') ? 'main' : 'subpages';
+			const category = pathParts[pathParts.length - 1]; // 'images' or 'videos'
+			
+			formData.append('mediaType', mediaType);
+			formData.append('category', category);
+			
+			// Upload file to backend
+			const response = await fetch('/api/upload-file', {
+				method: 'POST',
+				body: formData
+			});
+			
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to upload file');
+			}
+			
+			const result = await response.json();
+			return result.path;
+			
+		} catch (error) {
+			console.error('Error uploading file:', error);
+			throw error;
+		}
+	};
+
 	useEffect(() => {
 		const pageData = getPageData(
 			pages.find((p) => p.id === currentPageId)?.slug || "/"
@@ -838,57 +872,110 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout }) => {
 							<div className="admin-section">
 								<h4>Dodaj media</h4>
 								<div className="form-group">
+									<label>Wybierz typ mediów:</label>
+									<select 
+										id="mediaType" 
+										className="form-control" 
+										style={{ marginBottom: '15px', maxWidth: '200px' }}
+									>
+										<option value="main">Strona główna</option>
+										<option value="subpage">Podstrona</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Wybierz kategorię:</label>
+									<select 
+										id="mediaCategory" 
+										className="form-control" 
+										style={{ marginBottom: '15px', maxWidth: '200px' }}
+									>
+										<option value="images">Obrazy</option>
+										<option value="videos">Filmy</option>
+									</select>
+								</div>
+								<div className="form-group">
+									<label>Wybierz plik (tylko .webp dla obrazów, .webm dla filmów):</label>
 									<input
 										type="file"
-										accept="image/*,video/*"
+										accept=".webp,.webm"
 										onChange={async (e) => {
 											const file = e.target.files?.[0];
 											if (!file) return;
-											const reader = new FileReader();
-											reader.onload = () => {
-												const id =
-													Date.now().toString(36);
-												const isImage =
-													file.type.startsWith(
-														"image/"
-													);
-												const isVideo =
-													file.type.startsWith(
-														"video/"
-													);
+											
+											// Validate file type
+											const isWebp = file.name.toLowerCase().endsWith('.webp');
+											const isWebm = file.name.toLowerCase().endsWith('.webm');
+											
+											if (!isWebp && !isWebm) {
+												alert('Dozwolone są tylko pliki .webp (obrazy) i .webm (filmy)');
+												return;
+											}
+											
+											const mediaTypeSelect = document.getElementById('mediaType') as HTMLSelectElement;
+											const mediaCategorySelect = document.getElementById('mediaCategory') as HTMLSelectElement;
+											
+											const mediaType = mediaTypeSelect.value;
+											const category = mediaCategorySelect.value;
+											
+											// Determine target path
+											const basePath = mediaType === 'main' ? '/assets/main' : '/assets/subpages';
+											const targetPath = `${basePath}/${category}`;
+											
+											try {
+												// Show loading state
+												const loadingMsg = document.createElement('div');
+												loadingMsg.textContent = 'Przesyłanie pliku...';
+												loadingMsg.style.color = '#666';
+												loadingMsg.style.fontSize = '14px';
+												loadingMsg.style.marginTop = '10px';
+												e.target.parentElement?.appendChild(loadingMsg);
+												
+												// Upload file to the correct folder
+												const fullPath = await handleFileUpload(file, targetPath);
+												
+												const id = Date.now().toString(36);
+												
 												const item: MediaItem = {
 													id,
 													name: file.name,
-													type: isImage
-														? "image"
-														: isVideo
-														? "video"
-														: "other",
-													path: `local-media://${id}`,
-													preview:
-														typeof reader.result ===
-														"string"
-															? reader.result
-															: undefined,
+													type: isWebp ? "image" : "video",
+													path: fullPath,
+													preview: fullPath // Use the actual path as preview
 												};
+												
 												saveMedia([item, ...media]);
-											};
-											reader.readAsDataURL(file);
+												
+												// Remove loading message and show success
+												loadingMsg.remove();
+												alert(`Plik został przesłany!\nŚcieżka: ${fullPath}`);
+												
+												// Clear the input
+												e.target.value = '';
+												
+											} catch (error) {
+												// Remove loading message if exists
+												const loadingMsg = e.target.parentElement?.querySelector('div');
+												if (loadingMsg) loadingMsg.remove();
+												
+												alert('Błąd podczas przesyłania pliku: ' + (error as Error).message);
+											}
 										}}
 									/>
+									<small className="form-text text-muted">
+										Akceptowane formaty: .webp (obrazy), .webm (filmy)
+									</small>
 								</div>
 
 								<div className="form-group">
 									<label>
-										Dodaj istniejące media z assets
-										(ręcznie)
+										Lub dodaj ścieżkę do istniejącego pliku
 									</label>
 									<div style={{ display: "flex", gap: 8 }}>
 										<input
 											id="manualMediaPath"
 											type="text"
 											className="form-control"
-											placeholder="/assets/main/images/plik.jpg"
+											placeholder="/assets/main/images/plik.webp"
 										/>
 										<button
 											className="btn btn-secondary"
@@ -899,29 +986,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout }) => {
 													) as HTMLInputElement;
 												const val = input.value.trim();
 												if (!val) return;
+												
+												// Validate file extension
+												if (!val.toLowerCase().endsWith('.webp') && !val.toLowerCase().endsWith('.webm')) {
+													alert('Dozwolone są tylko pliki .webp i .webm');
+													return;
+												}
+												
 												const id =
 													Date.now().toString(36);
-												const ext = (
-													val.split(".").pop() || ""
-												).toLowerCase();
-												const type: MediaItem["type"] =
-													[
-														"png",
-														"jpg",
-														"jpeg",
-														"webp",
-														"gif",
-														"svg",
-													].includes(ext)
-														? "image"
-														: [
-																"mp4",
-																"webm",
-																"mov",
-																"mkv",
-														  ].includes(ext)
-														? "video"
-														: "other";
+												const isWebp = val.toLowerCase().endsWith('.webp');
+												const type: MediaItem["type"] = isWebp ? "image" : "video";
+												
 												const item: MediaItem = {
 													id,
 													name:
@@ -937,6 +1013,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout }) => {
 											Dodaj
 										</button>
 									</div>
+									<small className="form-text text-muted">
+										Przykład: /assets/main/images/zdjecie.webp lub /assets/main/videos/film.webm
+									</small>
 								</div>
 							</div>
 
@@ -1094,12 +1173,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout }) => {
 									</div>
 								)}
 								<small className="text-muted">
-									Uwaga: pliki dodane tutaj są przechowywane
-									lokalnie (localStorage) jako data-URL i mają
-									wirtualne ścieżki
-									<code>local-media://</code>. Dla prawdziwych
-									zasobów z katalogu <code>public</code>{" "}
-									używaj ścieżek <code>/assets/...</code>.
+									<strong>Automatyczne zapisywanie plików:</strong><br/>
+									1. Wybierz typ mediów (główna/podstrona) i kategorię (obrazy/filmy)<br/>
+									2. Wybierz plik .webp (obrazy) lub .webm (filmy) - max 50MB<br/>
+									3. Plik zostanie automatycznie przesłany do odpowiedniego folderu na serwerze<br/>
+									4. Struktura folderów:<br/>
+									&nbsp;&nbsp;- <code>/assets/main/images/</code> - obrazy strony głównej<br/>
+									&nbsp;&nbsp;- <code>/assets/main/videos/</code> - filmy strony głównej<br/>
+									&nbsp;&nbsp;- <code>/assets/subpages/images/</code> - obrazy podstron<br/>
+									&nbsp;&nbsp;- <code>/assets/subpages/videos/</code> - filmy podstron<br/>
+									5. Skopiuj ścieżkę z biblioteki i użyj w galerii<br/>
+									<strong>Uwaga:</strong> Akceptowane tylko pliki .webp i .webm
 								</small>
 							</div>
 						</>

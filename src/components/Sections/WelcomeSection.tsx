@@ -11,6 +11,34 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({ data }) => {
   const welcomeText = data?.welcomeText || "Fotobudka OG Event Spot!";
   const subtitle = data?.subtitle || "Dopełniamy, by na Twoim wydarzeniu nie zabrakło Atrakcji!";
 
+  // Animacja welcome header po załadowaniu komponentu
+  React.useEffect(() => {
+    const animateWelcomeHeader = () => {
+      const welcomeHeader = document.querySelector('.welcome-header');
+      if (!welcomeHeader) return;
+
+      const h2 = welcomeHeader.querySelector('h2') as HTMLElement;
+      const p = welcomeHeader.querySelector('p') as HTMLElement;
+
+      if (h2) {
+        h2.style.opacity = '1';
+        h2.style.transform = 'translateY(0)';
+        h2.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      }
+
+      if (p) {
+        setTimeout(() => {
+          p.style.opacity = '1';
+          p.style.transform = 'translateY(0)';
+          p.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s';
+        }, 200);
+      }
+    };
+
+    // Uruchom animację po krótkim opóźnieniu
+    const timer = setTimeout(animateWelcomeHeader, 300);
+    return () => clearTimeout(timer);
+  }, []);
   const offerCards = [
     {
       id: 'fotobudka-360',
@@ -51,13 +79,29 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({ data }) => {
           className="welcome-header text-center py-5"
           style={{ background: 'rgba(255, 255, 255, 0.9)' }}
         >
-          <h2 className="mb-3">
+          <h2 
+            className="mb-3"
+            style={{
+              opacity: 0,
+              transform: 'translateY(50px)',
+              fontSize: '2.5rem',
+              fontWeight: 'bold'
+            }}
+          >
             Witamy w{' '}
             <span style={{ color: '#801039', fontWeight: 'bold' }}>
               {welcomeText}
             </span>
           </h2>
-          <p className="lead" style={{ color: '#666' }}>
+          <p 
+            className="lead" 
+            style={{ 
+              color: '#666',
+              opacity: 0,
+              transform: 'translateY(30px)',
+              fontSize: '1.25rem'
+            }}
+          >
             {subtitle}
           </p>
         </div>

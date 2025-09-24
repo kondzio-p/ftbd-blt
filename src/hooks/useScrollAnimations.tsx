@@ -50,22 +50,8 @@ export const useScrollAnimations = (config: AnimationConfig = {}) => {
       
       // Welcome section animation
       if (classList.contains('welcome-header')) {
-        const h2 = element.querySelector('h2');
-        const p = element.querySelector('p');
-        
-        if (h2) {
-          (h2 as HTMLElement).style.opacity = '1';
-          (h2 as HTMLElement).style.transform = 'translateY(0)';
-          (h2 as HTMLElement).style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        }
-        
-        if (p) {
-          setTimeout(() => {
-            (p as HTMLElement).style.opacity = '1';
-            (p as HTMLElement).style.transform = 'translateY(0)';
-            (p as HTMLElement).style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s';
-          }, 200);
-        }
+        // Welcome header jest animowany bezpośrednio w komponencie
+        // Tutaj możemy dodać dodatkowe animacje jeśli potrzebne
       }
       
       // Offer cards animation
