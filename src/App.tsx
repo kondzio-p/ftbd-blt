@@ -15,6 +15,7 @@ import SubPage from "./components/Pages/SubPage";
 import { getPageData, allPages } from "./data/pageData";
 import type { PageData } from "./data/pageData";
 import { useGSAP } from "./hooks/useGSAP";
+import { useScrollAnimations } from "./hooks/useScrollAnimations";
 import "./styles/admin.css";
 
 // Background component
@@ -41,294 +42,146 @@ const Background: React.FC = () => (
 const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const location = useLocation();
 	const gsap = useGSAP();
+	const scrollObserver = useScrollAnimations();
 
 	useEffect(() => {
-		if (!gsap) return;
+		// Initialize base animations and setup
+		const initializeAnimations = () => {
+			// Set initial states for elements
+			const setInitialStates = () => {
+				// Welcome section
+				document.querySelectorAll('.welcome-header h2').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'translateY(50px)';
+				});
 
-		// Page transition animations and GSAP setup
-		const initializeGSAPAnimations = () => {
-			// Clear any existing ScrollTriggers
-			if (gsap.ScrollTrigger) {
-				gsap.ScrollTrigger.killAll();
-			}
+				document.querySelectorAll('.welcome-header p').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'translateY(30px)';
+				});
 
-			gsap.set(".nav-menu li", { opacity: 0, y: -20 });
-			gsap.set(".social-icons a", { opacity: 0, y: -20, rotation: -180 });
-			gsap.set(".photo-frame", { opacity: 0, scale: 0.8, rotation: 0 });
-			gsap.set(".contact-item", { opacity: 0, x: -50 });
-			gsap.set(".offer-card", { opacity: 0, y: 100, rotateX: -30 });
-			gsap.set(".stat-card", { opacity: 0, y: -30 });
-			gsap.set(".welcome-header h2", { opacity: 0, y: 50 });
-			gsap.set(".welcome-header p", { opacity: 0, y: 30 });
-			gsap.set(".image-slide", { opacity: 0, scale: 0.8 });
+				// Offer cards
+				document.querySelectorAll('.offer-card').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'translateY(100px) rotateX(-30deg)';
+				});
 
-			// Przygotowanie liczników – zgodnie z początkowym skryptem
-			document
-				.querySelectorAll<HTMLElement>(".stat-number")
-				.forEach((el) => {
-					const finalAttr = el.getAttribute("data-final-value");
-					const finalText = finalAttr ?? el.textContent ?? "";
-					el.setAttribute("data-final-value", finalText);
-					el.setAttribute("data-animated", "false");
+				// Stats cards
+				document.querySelectorAll('.stat-card').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'translateY(-30px) scale(0.8)';
+				});
 
-					if (finalText.trim() === "∞") {
-						el.textContent = "∞";
+				// Gallery images
+				document.querySelectorAll('.image-slide').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'scale(0.8)';
+				});
+
+				// Contact items
+				document.querySelectorAll('.contact-item').forEach((el) => {
+					(el as HTMLElement).style.opacity = '0';
+					(el as HTMLElement).style.transform = 'translateX(-50px)';
+				});
+
+				// Reset stat counters
+				document.querySelectorAll('.stat-number').forEach((el) => {
+					const finalAttr = el.getAttribute('data-final-value');
+					const finalText = finalAttr ?? el.textContent ?? '';
+					el.setAttribute('data-final-value', finalText);
+					el.removeAttribute('data-animated');
+
+					if (finalText.trim() === '∞') {
+						el.textContent = '∞';
 						return;
 					}
 					if (/\+$/.test(finalText)) {
-						el.textContent = "0+";
+						el.textContent = '0+';
 						return;
 					}
 					if (/lat$/.test(finalText)) {
-						el.textContent = "0 lat";
+						el.textContent = '0 lat';
 						return;
 					}
 					if (/\d/.test(finalText)) {
-						el.textContent = "0";
+						el.textContent = '0';
 					}
 				});
+			};
 
-			// Header entrance animation
-			const headerTimeline = gsap.timeline();
-			headerTimeline
-				.to(".nav-menu li", {
-					opacity: 1,
-					y: 0,
-					duration: 0.6,
-					stagger: 0.1,
-					ease: "back.out(1.7)",
-				})
-				.to(
-					".social-icons a",
-					{
+			setInitialStates();
+
+			// Header entrance animation (immediate, not scroll-triggered)
+			if (gsap) {
+				const headerTimeline = gsap.timeline();
+				headerTimeline
+					.to('.nav-menu li', {
 						opacity: 1,
 						y: 0,
-						rotation: 0,
 						duration: 0.6,
-						stagger: 0.15,
-						ease: "back.out(1.7)",
-					},
-					"-=0.4"
-				);
-
-			// Photo frames animation
-			const isMobile = window.innerWidth <= 768;
-			if (gsap.ScrollTrigger) {
-				const framesTimeline = gsap.timeline({
-					scrollTrigger: {
-						trigger: ".photo-gallery",
-						start: "top center+=100",
-						end: "bottom center",
-						toggleActions: "play none none reverse",
-					},
-				});
-
-				if (isMobile) {
-					framesTimeline
-						.to(".photo-frame:nth-child(1)", {
-							opacity: 1,
-							scale: 1,
-							rotation: -5,
-							duration: 0.8,
-							ease: "power2.out",
-						})
-						.to(
-							".photo-frame:nth-child(2)",
-							{
-								opacity: 1,
-								scale: 1,
-								rotation: 4,
-								duration: 0.8,
-								ease: "power2.out",
-							},
-							"-=0.65"
-						)
-						.to(
-							".photo-frame:nth-child(3)",
-							{
-								opacity: 1,
-								scale: 1,
-								rotation: -6,
-								duration: 0.8,
-								ease: "power2.out",
-							},
-							"-=0.65"
-						)
-						.to(
-							".photo-frame:nth-child(4)",
-							{
-								opacity: 1,
-								scale: 1,
-								rotation: 5,
-								duration: 0.8,
-								ease: "power2.out",
-							},
-							"-=0.65"
-						);
-				} else {
-					framesTimeline.to(".photo-frame", {
-						opacity: 1,
-						scale: 1,
-						duration: 0.8,
-						stagger: 0.15,
-						ease: "power2.out",
-					});
-				}
-			}
-
-			// Welcome section animation
-			if (gsap.ScrollTrigger) {
-				gsap.timeline({
-					scrollTrigger: {
-						trigger: ".welcome-section",
-						start: "top center+=200",
-						end: "bottom center",
-						toggleActions: "play none none reverse",
-					},
-				})
-					.to(".welcome-header h2", {
-						opacity: 1,
-						y: 0,
-						duration: 0.8,
-						ease: "power3.out",
+						stagger: 0.1,
+						ease: 'back.out(1.7)',
 					})
 					.to(
-						".welcome-header p",
+						'.social-icons a',
 						{
 							opacity: 1,
 							y: 0,
+							rotation: 0,
 							duration: 0.6,
-							ease: "power2.out",
+							stagger: 0.15,
+							ease: 'back.out(1.7)',
 						},
-						"-=0.4"
-					);
-			}
-
-			// Offer cards animation
-			if (gsap.ScrollTrigger) {
-				gsap.ScrollTrigger.batch(".offer-card", {
-					onEnter: (elements: any) => {
-						gsap.to(elements, {
+						'-=0.4'
+					)
+					.to(
+						'.photo-frame',
+						{
 							opacity: 1,
-							y: 0,
-							rotateX: 0,
-							duration: 1,
+							scale: 1,
+							rotation: (index: number) => {
+								const rotations = [-8, 5, -3, 7];
+								return rotations[index] || 0;
+							},
+							duration: 0.8,
 							stagger: 0.2,
-							ease: "back.out(1.4)",
-							transformOrigin: "center bottom",
-						});
-					},
-					start: "top bottom-=50",
-					end: "bottom top+=50",
+							ease: 'back.out(1.2)',
+						},
+						'-=0.2'
+					);
+			} else {
+				// Fallback without GSAP
+				document.querySelectorAll('.nav-menu li').forEach((el, index) => {
+					setTimeout(() => {
+						(el as HTMLElement).style.opacity = '1';
+						(el as HTMLElement).style.transform = 'translateY(0)';
+						(el as HTMLElement).style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+					}, index * 100);
 				});
-			}
 
-			// Sekcja statystyk + animacja liczników
-			if (gsap.ScrollTrigger) {
-				gsap.timeline({
-					scrollTrigger: {
-						trigger: ".stats-section",
-						start: "top center+=100",
-						end: "bottom center",
-						toggleActions: "play none none reverse",
-					},
-				})
-					.to(".stat-card", {
-						opacity: 1,
-						y: 0,
-						scale: 1,
-						rotation: 0,
-						duration: 1.2,
-						stagger: 0.1,
-						ease: "power2.out",
-					})
-					.add(() => {
-						document
-							.querySelectorAll<HTMLDivElement>(".stat-number")
-							.forEach((el) => {
-								if (el.getAttribute("data-animated") === "true")
-									return;
-								const finalText =
-									el.getAttribute("data-final-value") || "";
-								if (finalText.trim() === "∞") {
-									el.setAttribute("data-animated", "true");
-									return;
-								}
-
-								const hasPlus = /\+$/.test(finalText);
-								const hasLat = /lat$/.test(finalText);
-								const num =
-									parseInt(finalText.replace(/[^\d]/g, ""), 10) ||
-									0;
-								const suffix = hasLat ? " lat" : hasPlus ? "+" : "";
-
-								if (num > 0) {
-									const obj = { val: 0 };
-									gsap.to(obj, {
-										val: num,
-										duration: 2.5,
-										ease: "power2.out",
-										onUpdate: () => {
-											el.textContent =
-												Math.round(obj.val).toString() + suffix;
-										},
-										onComplete: () => {
-											el.textContent = num.toString() + suffix;
-											el.setAttribute("data-animated", "true");
-										},
-									});
-								} else {
-									el.setAttribute("data-animated", "true");
-								}
-							});
-					});
-			}
-
-			// Gallery images animation
-			if (gsap.ScrollTrigger) {
-				gsap.timeline({
-					scrollTrigger: {
-						trigger: ".image-gallery-section",
-						start: "top center+=100",
-						end: "bottom center",
-						toggleActions: "play none none reverse",
-					},
-				}).to(".image-slide", {
-					opacity: 1,
-					scale: 1,
-					duration: 0.8,
-					stagger: 0.2,
-					ease: "power2.out",
+				document.querySelectorAll('.social-icons a').forEach((el, index) => {
+					setTimeout(() => {
+						(el as HTMLElement).style.opacity = '1';
+						(el as HTMLElement).style.transform = 'translateY(0) rotate(0deg)';
+						(el as HTMLElement).style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+					}, 400 + index * 150);
 				});
-			}
 
-			// Footer animation
-			if (gsap.ScrollTrigger) {
-				gsap.timeline({
-					scrollTrigger: {
-						trigger: "#contact",
-						start: "top center+=200",
-						end: "bottom center",
-						toggleActions: "play none none reverse",
-					},
-				}).to(".contact-item", {
-					opacity: 1,
-					x: 0,
-					duration: 0.8,
-					stagger: 0.2,
-					ease: "back.out(1.4)",
+				// Animate photo frames without GSAP
+				document.querySelectorAll('.photo-frame').forEach((el, index) => {
+					const rotations = [-8, 5, -3, 7];
+					setTimeout(() => {
+						(el as HTMLElement).style.opacity = '1';
+						(el as HTMLElement).style.transform = `scale(1) rotate(${rotations[index] || 0}deg)`;
+						(el as HTMLElement).style.transition = 'all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+					}, 600 + index * 200);
 				});
-			}
-
-			// Refresh ScrollTrigger after setup
-			if (gsap.ScrollTrigger) {
-				gsap.ScrollTrigger.refresh();
 			}
 		};
 
-		const timer = setTimeout(initializeGSAPAnimations, 200);
+		const timer = setTimeout(initializeAnimations, 200);
 		return () => clearTimeout(timer);
-	}, [location.pathname, gsap]);
+	}, [location.pathname, gsap, scrollObserver]);
 
 	return <>{children}</>;
 };

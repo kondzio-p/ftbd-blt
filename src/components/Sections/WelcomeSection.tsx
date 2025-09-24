@@ -74,24 +74,11 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({ data }) => {
             </h3>
 
             <div className="row g-4">
-              {offerCards.slice(0, 3).map((card) => (
-                <div key={card.id} className="col-lg-4 col-md-6">
-                  <div className={`offer-card ${card.className} h-100`}>
-                    <div className="card-background"></div>
-                    <div className="card-overlay"></div>
-                    <div className="card-content">
-                      <h4>{card.title}</h4>
-                      <p>{card.description}</p>
-                    </div>
-                    <div className="card-title-overlay">
-                      <h4>{card.title}</h4>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {offerCards.slice(3).map((card) => (
-                <div key={card.id} className="col-lg-4 col-md-6 offset-lg-2">
+              {offerCards.map((card, index) => (
+                <div 
+                  key={card.id} 
+                  className={`col-lg-4 col-md-6 ${index >= 3 && index === 3 ? 'offset-lg-2' : ''}`}
+                >
                   <div className={`offer-card ${card.className} h-100`}>
                     <div className="card-background"></div>
                     <div className="card-overlay"></div>

@@ -67,6 +67,8 @@ export const useGSAP = () => {
         }
       } catch (error) {
         console.warn('Failed to load GSAP libraries:', error);
+        // Fallback: still mark as initialized so we don't keep trying
+        initialized.current = true;
       }
     };
 

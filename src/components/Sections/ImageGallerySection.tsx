@@ -99,6 +99,7 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
     const altText = target.alt || 'Gallery image';
     target.outerHTML = `<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;">${altText}</div>`;
   };
+
   return (
     <section
       className="image-gallery-section py-5"
@@ -116,6 +117,7 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
             <div style={{ color: '#666', fontSize: '14px' }}>Ładowanie galerii...</div>
           </div>
         )}
+        
         <div className="image-carousel-container">
           <button
             className="carousel-arrow carousel-arrow-left"
