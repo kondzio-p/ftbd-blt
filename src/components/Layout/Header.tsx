@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useGSAP } from '../../hooks/useGSAP';
 
 interface HeaderProps {
   data?: {
@@ -11,6 +12,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ data }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const gsap = useGSAP();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +23,30 @@ const Header: React.FC<HeaderProps> = ({ data }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault();
+    
+    if (!gsap) {
+      // Fallback to native smooth scroll
+      const target = document.querySelector(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    const target = document.querySelector(targetId);
+    if (target) {
+      gsap.to(window, {
+        duration: 1.2,
+        scrollTo: {
+          y: target,
+          offsetY: 80
+        },
+        ease: "power2.inOut"
+      });
+    }
+  };
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
@@ -53,10 +79,10 @@ const Header: React.FC<HeaderProps> = ({ data }) => {
               </Link>
             </li>
             <li>
-              <a href="#welcome">O nas</a>
+              <a href="#welcome" onClick={(e) => handleSmoothScroll(e, '#welcome')}>O nas</a>
             </li>
             <li>
-              <a href="#contact">Kontakt</a>
+              <a href="#contact" onClick={(e) => handleSmoothScroll(e, '#contact')}>Kontakt</a>
             </li>
           </ul>
         </nav>
@@ -126,10 +152,10 @@ const Header: React.FC<HeaderProps> = ({ data }) => {
                 </Link>
               </li>
               <li>
-                <a href="#welcome">O nas</a>
+                <a href="#welcome" onClick={(e) => handleSmoothScroll(e, '#welcome')}>O nas</a>
               </li>
               <li>
-                <a href="#contact">Kontakt</a>
+                <a href="#contact" onClick={(e) => handleSmoothScroll(e, '#contact')}>Kontakt</a>
               </li>
             </ul>
           </nav>

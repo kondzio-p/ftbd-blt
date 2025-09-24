@@ -47,6 +47,11 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 		// Page transition animations and GSAP setup
 		const initializeGSAPAnimations = () => {
+			// Clear any existing ScrollTriggers
+			if (gsap.ScrollTrigger) {
+				gsap.ScrollTrigger.killAll();
+			}
+
 			gsap.set(".nav-menu li", { opacity: 0, y: -20 });
 			gsap.set(".social-icons a", { opacity: 0, y: -20, rotation: -180 });
 			gsap.set(".photo-frame", { opacity: 0, scale: 0.8, rotation: 0 });
@@ -55,6 +60,7 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 			gsap.set(".stat-card", { opacity: 0, y: -30 });
 			gsap.set(".welcome-header h2", { opacity: 0, y: 50 });
 			gsap.set(".welcome-header p", { opacity: 0, y: 30 });
+			gsap.set(".image-slide", { opacity: 0, scale: 0.8 });
 
 			// Przygotowanie liczników – zgodnie z początkowym skryptem
 			document
@@ -63,6 +69,7 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 					const finalAttr = el.getAttribute("data-final-value");
 					const finalText = finalAttr ?? el.textContent ?? "";
 					el.setAttribute("data-final-value", finalText);
+					el.setAttribute("data-animated", "false");
 
 					if (finalText.trim() === "∞") {
 						el.textContent = "∞";
@@ -106,90 +113,96 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 			// Photo frames animation
 			const isMobile = window.innerWidth <= 768;
-			const framesTimeline = gsap.timeline({
-				scrollTrigger: {
-					trigger: ".photo-gallery",
-					start: "top center+=100",
-					toggleActions: "play none none reverse",
-				},
-			});
+			if (gsap.ScrollTrigger) {
+				const framesTimeline = gsap.timeline({
+					scrollTrigger: {
+						trigger: ".photo-gallery",
+						start: "top center+=100",
+						end: "bottom center",
+						toggleActions: "play none none reverse",
+					},
+				});
 
-			if (isMobile) {
-				framesTimeline
-					.to(".photo-frame:nth-child(1)", {
+				if (isMobile) {
+					framesTimeline
+						.to(".photo-frame:nth-child(1)", {
+							opacity: 1,
+							scale: 1,
+							rotation: -5,
+							duration: 0.8,
+							ease: "power2.out",
+						})
+						.to(
+							".photo-frame:nth-child(2)",
+							{
+								opacity: 1,
+								scale: 1,
+								rotation: 4,
+								duration: 0.8,
+								ease: "power2.out",
+							},
+							"-=0.65"
+						)
+						.to(
+							".photo-frame:nth-child(3)",
+							{
+								opacity: 1,
+								scale: 1,
+								rotation: -6,
+								duration: 0.8,
+								ease: "power2.out",
+							},
+							"-=0.65"
+						)
+						.to(
+							".photo-frame:nth-child(4)",
+							{
+								opacity: 1,
+								scale: 1,
+								rotation: 5,
+								duration: 0.8,
+								ease: "power2.out",
+							},
+							"-=0.65"
+						);
+				} else {
+					framesTimeline.to(".photo-frame", {
 						opacity: 1,
 						scale: 1,
-						rotation: -5,
 						duration: 0.8,
+						stagger: 0.15,
 						ease: "power2.out",
-					})
-					.to(
-						".photo-frame:nth-child(2)",
-						{
-							opacity: 1,
-							scale: 1,
-							rotation: 4,
-							duration: 0.8,
-							ease: "power2.out",
-						},
-						"-=0.65"
-					)
-					.to(
-						".photo-frame:nth-child(3)",
-						{
-							opacity: 1,
-							scale: 1,
-							rotation: -6,
-							duration: 0.8,
-							ease: "power2.out",
-						},
-						"-=0.65"
-					)
-					.to(
-						".photo-frame:nth-child(4)",
-						{
-							opacity: 1,
-							scale: 1,
-							rotation: 5,
-							duration: 0.8,
-							ease: "power2.out",
-						},
-						"-=0.65"
-					);
-			} else {
-				framesTimeline.to(".photo-frame", {
-					opacity: 1,
-					scale: 1,
-					duration: 0.8,
-					stagger: 0.15,
-					ease: "power2.out",
-				});
+					});
+				}
 			}
 
 			// Welcome section animation
-			gsap.timeline({
-				scrollTrigger: {
-					trigger: ".welcome-section",
-					start: "top center+=200",
-					toggleActions: "play none none reverse",
-				},
-			})
-				.to(".welcome-header h2", {
-					opacity: 1,
-					y: 0,
-					duration: 0.8,
-					ease: "power3.out",
+			if (gsap.ScrollTrigger) {
+				gsap.timeline({
+					scrollTrigger: {
+						trigger: ".welcome-section",
+						start: "top center+=200",
+						end: "bottom center",
+						toggleActions: "play none none reverse",
+					},
 				})
-				.to(
-					".welcome-header p",
-					{
+					.to(".welcome-header h2", {
 						opacity: 1,
 						y: 0,
-						duration: 0.6,
-						ease: "power2.out",
-					},
-					"-=0.4"
-				);
+						duration: 0.8,
+						ease: "power3.out",
+					})
+					.to(
+						".welcome-header p",
+						{
+							opacity: 1,
+							y: 0,
+							duration: 0.6,
+							ease: "power2.out",
+						},
+						"-=0.4"
+					);
+			}
 
 			// Offer cards animation
 			if (gsap.ScrollTrigger) {
@@ -205,77 +218,115 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 							transformOrigin: "center bottom",
 						});
 					},
-					start: "top bottom-=100",
+					start: "top bottom-=50",
+					end: "bottom top+=50",
 				});
 			}
 
 			// Sekcja statystyk + animacja liczników
-			gsap.timeline({
-				scrollTrigger: {
-					trigger: ".stats-section",
-					start: "top center+=100",
-					toggleActions: "play none none reverse",
-				},
-			})
-				.to(".stat-card", {
+			if (gsap.ScrollTrigger) {
+				gsap.timeline({
+					scrollTrigger: {
+						trigger: ".stats-section",
+						start: "top center+=100",
+						end: "bottom center",
+						toggleActions: "play none none reverse",
+					},
+				})
+					.to(".stat-card", {
+						opacity: 1,
+						y: 0,
+						scale: 1,
+						rotation: 0,
+						duration: 1.2,
+						stagger: 0.1,
+						ease: "power2.out",
+					})
+					.add(() => {
+						document
+							.querySelectorAll<HTMLDivElement>(".stat-number")
+							.forEach((el) => {
+								if (el.getAttribute("data-animated") === "true")
+									return;
+								const finalText =
+									el.getAttribute("data-final-value") || "";
+								if (finalText.trim() === "∞") {
+									el.setAttribute("data-animated", "true");
+									return;
+								}
+
+								const hasPlus = /\+$/.test(finalText);
+								const hasLat = /lat$/.test(finalText);
+								const num =
+									parseInt(finalText.replace(/[^\d]/g, ""), 10) ||
+									0;
+								const suffix = hasLat ? " lat" : hasPlus ? "+" : "";
+
+								if (num > 0) {
+									const obj = { val: 0 };
+									gsap.to(obj, {
+										val: num,
+										duration: 2.5,
+										ease: "power2.out",
+										onUpdate: () => {
+											el.textContent =
+												Math.round(obj.val).toString() + suffix;
+										},
+										onComplete: () => {
+											el.textContent = num.toString() + suffix;
+											el.setAttribute("data-animated", "true");
+										},
+									});
+								} else {
+									el.setAttribute("data-animated", "true");
+								}
+							});
+					});
+			}
+
+			// Gallery images animation
+			if (gsap.ScrollTrigger) {
+				gsap.timeline({
+					scrollTrigger: {
+						trigger: ".image-gallery-section",
+						start: "top center+=100",
+						end: "bottom center",
+						toggleActions: "play none none reverse",
+					},
+				}).to(".image-slide", {
 					opacity: 1,
 					scale: 1,
-					rotation: 0,
-					duration: 1.2,
-					stagger: 0.1,
+					duration: 0.8,
+					stagger: 0.2,
 					ease: "power2.out",
-				})
-				.add(() => {
-					document
-						.querySelectorAll<HTMLDivElement>(".stat-number")
-						.forEach((el) => {
-							if (el.getAttribute("data-animated") === "true")
-								return;
-							const finalText =
-								el.getAttribute("data-final-value") || "";
-							if (finalText.trim() === "∞") return;
-
-							const hasPlus = /\+$/.test(finalText);
-							const hasLat = /lat$/.test(finalText);
-							const num =
-								parseInt(finalText.replace(/[^\d]/g, ""), 10) ||
-								0;
-							const suffix = hasLat ? " lat" : hasPlus ? "+" : "";
-
-							const obj = { val: 0 };
-							gsap.to(obj, {
-								val: num,
-								duration: 2,
-								ease: "power2.out",
-								onUpdate: () => {
-									el.textContent =
-										Math.round(obj.val).toString() + suffix;
-								},
-								onComplete: () => {
-									el.textContent = num.toString() + suffix;
-									el.setAttribute("data-animated", "true");
-								},
-							});
-						});
 				});
+			}
 
 			// Footer animation
-			gsap.timeline({
-				scrollTrigger: {
-					trigger: "#contact",
-					start: "top center+=200",
-					toggleActions: "play none none reverse",
-				},
-			}).to(".contact-item", {
-				opacity: 1,
-				x: 0,
-				duration: 0.8,
-				stagger: 0.2,
-				ease: "back.out(1.4)",
-			});
+			if (gsap.ScrollTrigger) {
+				gsap.timeline({
+					scrollTrigger: {
+						trigger: "#contact",
+						start: "top center+=200",
+						end: "bottom center",
+						toggleActions: "play none none reverse",
+					},
+				}).to(".contact-item", {
+					opacity: 1,
+					x: 0,
+					duration: 0.8,
+					stagger: 0.2,
+					ease: "back.out(1.4)",
+				});
+			}
+
+			// Refresh ScrollTrigger after setup
+			if (gsap.ScrollTrigger) {
+				gsap.ScrollTrigger.refresh();
+			}
 		};
 
-		const timer = setTimeout(initializeGSAPAnimations, 50);
+		const timer = setTimeout(initializeGSAPAnimations, 200);
 		return () => clearTimeout(timer);
 	}, [location.pathname, gsap]);
 

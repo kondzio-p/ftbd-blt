@@ -12,6 +12,7 @@ interface ImageGalleryProps {
 const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
   const [currentIndex, setCurrentIndex] = useState(1);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const defaultImages = [
     { src: '/assets/main/images/360.png', alt: 'Gallery image 1' },
@@ -24,6 +25,35 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
   const images = data?.images || defaultImages;
   const totalImages = images.length;
 
+  // Preload images
+  useEffect(() => {
+    let loadedCount = 0;
+    const imagePromises = images.map((img) => {
+      return new Promise<void>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          loadedCount++;
+          if (loadedCount === images.length) {
+            setImagesLoaded(true);
+          }
+          resolve();
+        };
+        image.onerror = () => {
+          console.warn(`Failed to load image: ${img.src}`);
+          loadedCount++;
+          if (loadedCount === images.length) {
+            setImagesLoaded(true);
+          }
+          resolve();
+        };
+        image.src = img.src;
+      });
+    });
+
+    Promise.all(imagePromises).catch(() => {
+      setImagesLoaded(true);
+    });
+  }, [images]);
   const nextImage = () => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -53,6 +83,8 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
 
   // Auto-play functionality
   useEffect(() => {
+    if (!imagesLoaded) return;
+    
     const interval = setInterval(() => {
       if (!isAnimating) {
         nextImage();
@@ -60,8 +92,13 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [isAnimating]);
+  }, [isAnimating, imagesLoaded]);
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.target as HTMLImageElement;
+    const altText = target.alt || 'Gallery image';
+    target.outerHTML = `<div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px;">${altText}</div>`;
+  };
   return (
     <section
       className="image-gallery-section py-5"
@@ -74,11 +111,17 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
           </h3>
         </div>
 
+        {!imagesLoaded && (
+          <div className="text-center mb-4">
+            <div style={{ color: '#666', fontSize: '14px' }}>Ładowanie galerii...</div>
+          </div>
+        )}
         <div className="image-carousel-container">
           <button
             className="carousel-arrow carousel-arrow-left"
             aria-label="Poprzedni slajd"
             onClick={prevImage}
+            disabled={!imagesLoaded}
           >
             <svg
               width="24"
@@ -102,24 +145,24 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
               <img
                 src={images[getImageIndex('left')]?.src}
                 alt={images[getImageIndex('left')]?.alt}
-                loading="lazy"
-                className="gallery-lazy"
+                onError={handleImageError}
+                style={{ opacity: imagesLoaded ? 1 : 0 }}
               />
             </div>
             <div className="image-slide image-slide-center active">
               <img
                 src={images[getImageIndex('center')]?.src}
                 alt={images[getImageIndex('center')]?.alt}
-                loading="lazy"
-                className="gallery-lazy"
+                onError={handleImageError}
+                style={{ opacity: imagesLoaded ? 1 : 0 }}
               />
             </div>
             <div className="image-slide image-slide-right">
               <img
                 src={images[getImageIndex('right')]?.src}
                 alt={images[getImageIndex('right')]?.alt}
-                loading="lazy"
-                className="gallery-lazy"
+                onError={handleImageError}
+                style={{ opacity: imagesLoaded ? 1 : 0 }}
               />
             </div>
           </div>
@@ -128,6 +171,7 @@ const ImageGallerySection: React.FC<ImageGalleryProps> = ({ data }) => {
             className="carousel-arrow carousel-arrow-right"
             aria-label="Następny slajd"
             onClick={nextImage}
+            disabled={!imagesLoaded}
           >
             <svg
               width="24"
